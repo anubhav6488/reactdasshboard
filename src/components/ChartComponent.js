@@ -1,6 +1,6 @@
-// ChartComponent.js
 import React, { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import './ChartComponent.css'; // Import CSS file
 
 const ChartComponent = ({ chartType }) => {
   const [data, setData] = useState([]);
@@ -24,75 +24,60 @@ const ChartComponent = ({ chartType }) => {
 
   useEffect(() => {
     if (data.length > 0 && d3Container.current) {
-      const svg = d3.select(d3Container.current);
-
-      // Clear previous content
-      svg.selectAll('*').remove();
-
-      const margin = { top: 20, right: 30, bottom: 40, left: 40 };
+      const margin = { top: 20, right: 20, bottom: 60, left: 60 }; // Adjusted bottom and left margins for axis labels
       const width = 800 - margin.left - margin.right;
-      const height = 400 - margin.top - margin.bottom;
+      const height = 600 - margin.top - margin.bottom;
 
-      const x = d3.scaleBand()
-        .domain(data.map(d => d.country))
-        .range([margin.left, width - margin.right])
-        .padding(0.1);
+      const svg = d3.select(d3Container.current)
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.intensity)])
-        .nice()
-        .range([height - margin.bottom, margin.top]);
+      const x = d3.scaleLinear().range([0, width]);
+      const y = d3.scaleLinear().range([height, 0]);
 
-      // Debugging statements
-      console.log('Data for D3:', data);
-      console.log('x domain:', data.map(d => d.country));
-      console.log('y domain max:', d3.max(data, d => d.intensity));
+      const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-      svg.append('g')
-        .selectAll('rect')
-        .data(data)
-        .enter().append('rect')
-        .attr('x', d => x(d.country))
-        .attr('y', d => y(d.intensity))
-        .attr('height', d => {
-          console.log('Height calculation:', y(0) - y(d.intensity));  // Debugging statement
-          return y(0) - y(d.intensity);
-        })
-        .attr('width', x.bandwidth())
-        .attr('fill', 'steelblue')
-        .append('title')  // Adding tooltip
-        .text(d => `Intensity: ${d.intensity}`);
+      const attributes = ["intensity", "likelihood", "relevance", "start_year", "country", "topic", "region", "end_year"];
 
-      svg.append('g')
-        .attr('transform', `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x).tickSizeOuter(0))
-        .selectAll("text")
-        .style("text-anchor", "end")
-        .attr("dx", "-.8em")
-        .attr("dy", ".15em")
-        .attr("transform", "rotate(-65)");  // Rotating x-axis labels for better readability
+      x.domain(d3.extent(data, d => d.intensity)).nice();
+      y.domain(d3.extent(data, d => d.likelihood)).nice();
 
-      svg.append('g')
-        .attr('transform', `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y));
+      attributes.forEach(attrX => {
+        attributes.forEach(attrY => {
+          if (attrX !== attrY) {
+            const circleRadius = 5;
+            svg.selectAll(`.${attrX}-${attrY}`)
+              .data(data)
+              .enter().append("circle")
+              .attr("class", d => `${attrX}-${attrY}`)
+              .attr("cx", d => x(d[attrX]))
+              .attr("cy", d => y(d[attrY]))
+              .attr("r", circleRadius)
+              .style("fill", d => color(attrX))
+              .style("opacity", 0.7)
+              .append("title")
+              .text(d => `${attrX}: ${d[attrX]}, ${attrY}: ${d[attrY]}`);
+          }
+        });
+      });
 
-      // Adding Y-axis label
-      svg.append("text")
-        .attr("class", "y label")
-        .attr("text-anchor", "end")
-        .attr("y", 6)
-        .attr("dy", "-2.5em")
-        .attr("dx", "-15em")
-        .attr("transform", "rotate(-90)")
-        .text("Intensity");
+      attributes.forEach(attr => {
+        svg.append("g")
+          .attr("class", `axis axis-${attr}`)
+          .attr("transform", attr === "start_year" ? `translate(0,${height})` : attr === "intensity" ? `translate(0,0)` : `translate(${width},0)`)
+          .call(attr === "start_year" ? d3.axisBottom(x).ticks(5).tickSizeOuter(0) : d3.axisLeft(y).ticks(5).tickSizeOuter(0));
+      });
     }
   }, [data]);
 
   return (
     <svg
       ref={d3Container}
+      className="chart-svg" // Apply class for styling
       width={800}
-      height={400}
+      height={600}
     />
   );
 };

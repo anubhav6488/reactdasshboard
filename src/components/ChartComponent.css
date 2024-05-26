@@ -1,0 +1,21 @@
+.chart-svg {
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+  
+  .axis text {
+    font-size: 12px;
+  }
+  
+  .axis .domain {
+    display: none;
+  }
+  
